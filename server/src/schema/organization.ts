@@ -69,15 +69,17 @@ export default {
       createOrganization(root, args, context, info) {
         logInfo('createOrganization')
         lastId++
-        orga = R.compose(
+        const orga = R.compose(
           R.set(R.lensProp('id'), '' + lastId),
           R.set(R.lensProp('name'), args.name)
         )(args)
-        organizations.push(orga)        
-        return orga
+        organizations.push(orga)
+
+        return  new Promise(resolve => setTimeout((=>return resolve(orga)), 2000));
+
       },
       updateOrganization(root, args, context, info) {
-        logInfo('updateOrganization with id ${args.id}')
+        logInfo(`updateOrganization with id ${args.id}`)
 
         const orga = R.compose(
           R.set(R.lensProp('id'), args.id),
@@ -88,17 +90,19 @@ export default {
 
         console.dir(R.update(id, orga, organizations))
 
-        return id < 0 ? null :
+        const getRes = R.curry( ()=> id < 0 ? null :
           R.compose(
             R.curry(_ => orga),
             R.curry(orgs => organizations = orgs),
             R.update(id, orga)
-          )(organizations)
+          )(organizations))
+
+        return new Promise(resolve => setTimeout((=>return resolve(getRes())), 2000));
       },
       removeOrganization(root, args, context, info) {
         logInfo('removeOrganization with id ${args.id}')
         organizations = organizations.filter(R.propEq('id', args.id), args);
-        return true
+        return new Promise(resolve => setTimeout((=>return resolve(true)), 2000));
       },
     },
     Organization: {
