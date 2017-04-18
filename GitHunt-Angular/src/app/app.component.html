@@ -6,4 +6,5 @@
     <li *ngFor="let orga of organizations">{{orga.id}} - {{orga.name}} <button (click)="onDelete($event, orga.id)">X</button><button (click)="onChange($event, orga.id)">C</button></li>
   </ul>
   <button (click)="onAdd()">add</button>
+  <p [hidden]="!status">status : {{status}}</p>
 </div>
