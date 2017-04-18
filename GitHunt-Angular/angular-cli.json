@@ -20,7 +20,6 @@
         "styles.css"
       ],
       "scripts": [
-        "../node_modules/ramda/index.js"
       ],
       "environments": {
 	"source": "environments/environment.ts",
