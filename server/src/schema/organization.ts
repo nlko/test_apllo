@@ -75,7 +75,7 @@ export default {
         )(args)
         organizations.push(orga)
 
-        return  new Promise(resolve => setTimeout((=>return resolve(orga)), 2000));
+        return new Promise(resolve => setTimeout((()=>resolve(orga)), 2000));
 
       },
       updateOrganization(root, args, context, info) {
@@ -97,12 +97,12 @@ export default {
             R.update(id, orga)
           )(organizations))
 
-        return new Promise(resolve => setTimeout((=>return resolve(getRes())), 2000));
+        return new Promise(resolve => setTimeout((()=>resolve(getRes())), 2000));
       },
       removeOrganization(root, args, context, info) {
-        logInfo('removeOrganization with id ${args.id}')
-        organizations = organizations.filter(R.propEq('id', args.id), args);
-        return new Promise(resolve => setTimeout((=>return resolve(true)), 2000));
+        logInfo(`removeOrganization with id ${args.id}`)
+        organizations = organizations.filter(R.compose(R.not,R.propEq('id', args.id)), args);
+        return new Promise(resolve => setTimeout((()=>resolve(true)), 2000));
       },
     },
     Organization: {
