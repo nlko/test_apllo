@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import * as Rx from 'rxjs'
 import gql from 'graphql-tag';
 import { Apollo, ApolloQueryObservable } from 'apollo-angular';
+import * as R from 'ramda'
 
 @Component({
   selector: 'app-root',
@@ -22,7 +23,7 @@ export class AppComponent implements OnInit {
   `
 
   removeQuery = gql`
-    mutation removeOrga($id:String!) {removeOrganization(id:$id)}
+    mutation removeOrganization($id:String!) {removeOrganization(id:$id)}
   `
 
   change = gql`
@@ -63,6 +64,91 @@ export class AppComponent implements OnInit {
 
   add = gql`mutation createOrganization($name:String!) {createOrganization(name:$name){id,name}}`
 
+  // Get extract essential data for queries update helpers parameters
+  private getOriginalList = (queryNameToUpdate: string, previous: any) =>
+    // Get the previous list or an empty one
+    R.propOr([], queryNameToUpdate, previous)
+
+  // Get extract essential data for queries update helpers parameters
+  private getMutationData = (currentQueryName: string, mutationResult: any) =>
+    // Get the element ot add or undefined
+    R.path(['data', currentQueryName], (mutationResult as any))
+
+
+  // Function to update a list fith a provide function
+  // if the list is undefined return an empty list
+  private updateList = R.curry((func, lst: any[]) =>
+    R.ifElse(
+      R.isNil,
+      R.curry(_ => [] as any),
+      func
+    )(lst),
+  )
+
+  private listAdd = R.curry((queryNameToUpdate: string, currentQueryName: string, previous: any, { mutationResult }) => {
+    // Get the previous list or an empty one
+    const list = this.getOriginalList(queryNameToUpdate, previous)
+    // Get new element result of the mutation
+    const elt = this.getMutationData(currentQueryName, mutationResult)
+
+    // Function to add a element to a list
+    // If the element is undefined return the same list
+    const appendIfElemIsntNull = R.curry((elt: any, lst: any[]) =>
+      R.ifElse(
+        R.isNil,
+        R.curry(_ => lst),
+        R.curry(x => R.append(x, lst)),
+      )(elt))
+
+    // Create an object with an attribute with name contained in queryNameToUpdate
+    // Set this attribute to the new list value
+    const newList = R.set(
+      R.lensProp(queryNameToUpdate),
+      this.updateList(appendIfElemIsntNull(elt), list as any[]),
+      {})
+
+    return newList
+  })
+
+  private listDelete = R.curry((queryNameToUpdate: string, filterFunc, previous: any, { mutationResult }) => {
+    // Get the previous list or an empty one
+    const list = this.getOriginalList(queryNameToUpdate, previous)
+
+    // Create an object with an attribute with name contained in queryNameToUpdate
+    // Set this attribute to the new list value
+    const newList = R.set(
+      R.lensProp(queryNameToUpdate),
+      this.updateList(filterFunc, list as any[]),
+      {})
+
+    return newList
+  })
+
+  // Helper for building a query update param for add mutation
+  private addUpdateQueries = (queryNameToUpdate: string, currentQueryName: string) =>
+    R.set(
+      R.lensProp(queryNameToUpdate),
+      this.listAdd(queryNameToUpdate, currentQueryName),
+      {})
+
+  // Helper for building a query update param for delete mutation
+  private deleteUpdateQueries = (queryNameToUpdate: string, filter) =>
+    R.set(
+      R.lensProp(queryNameToUpdate),
+      this.listDelete(queryNameToUpdate, filter),
+      {})
+
+  // Helper for building an optimistic response object
+  private optimisticResponse = (currentQueryName: string, type: string, data = {}) =>
+    R.set(
+      R.lensProp(currentQueryName),
+      R.set(
+        R.lensProp('__typename'),
+        type,
+        data
+      ),
+      { __typename: 'Mutation' })
+
 
   public onAdd() {
 
@@ -73,21 +159,11 @@ export class AppComponent implements OnInit {
       variables: {
         "name": "test"
       },
-      updateQueries: {
-        organizations: (prev, {mutationResult }) => {
-          const organizations = (prev as any).organizations
-          const elt = (mutationResult as any).data.createOrganization
-          return { organizations: [...organizations, elt] }
-        }
-      },
-      optimisticResponse: {
-        __typename: 'Mutation',
-        createOrganization: {
-          id: "...",
-          name: "test optimistic",
-          __typename: 'Organization',
-        },
-      },
+      updateQueries: this.addUpdateQueries('organizations', 'createOrganization'),
+      optimisticResponse: this.optimisticResponse('createOrganization', 'Organization', {
+        id: "...",
+        name: "test optimistic",
+      }),
     }).subscribe(
       (data) => { console.dir(data) },
       (error) => {
@@ -103,19 +179,8 @@ export class AppComponent implements OnInit {
       variables: {
         id: id
       },
-      updateQueries: {
-        organizations: (prev, {mutationResult }) => {
-          const organizations = (prev as any).organizations
-          return { organizations: organizations.filter((e: any) => e.id != id) }
-        }
-      },
-      optimisticResponse: {
-        __typename: 'Mutation',
-        createOrganization: {
-          //          id: id,
-          __typename: 'Organization',
-        },
-      },
+      updateQueries: this.deleteUpdateQueries('organizations', R.filter(R.compose(R.not, R.pathEq(['id'], id)))),
+      optimisticResponse: this.optimisticResponse('removeOrganization', 'Organization', {}),
     }).subscribe(
       (data) => { console.dir(data) },
       (error) => {
@@ -136,14 +201,10 @@ export class AppComponent implements OnInit {
         "id": id,
         "name": newName
       },
-      optimisticResponse: {
-        __typename: 'Mutation',
-        updateOrganization: {
-          id: id,
-          name: newName,
-          __typename: 'Organization',
-        },
-      },
+      optimisticResponse: this.optimisticResponse('updateOrganization', 'Organization', {
+        id: id,
+        name: newName,
+      }),
     }).subscribe(
       (data) => { console.dir(data) },
       (error) => {
