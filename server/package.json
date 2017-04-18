@@ -1,0 +1,30 @@
+{
+  "name": "manager_api",
+  "description": "graphql for manager",
+  "version": "0.0.1",
+  "scripts": {
+    "start": "NODE_ENV=dev /bin/bash ./start.sh app/server.js",
+    "postinstall": "typings install",
+    "typings": "typings"
+  },
+  "devDependencies": {
+    "typescript": "^2.0",
+    "typings": "^0.8.1"
+  },
+  "dependencies": {
+    "@types/express-session": "0.0.32",
+    "body-parser": "^1.15.2",
+    "compression": "^1.6.2",
+    "cors": "^2.8.1",
+    "express": "^4.14.0",
+    "express-http-proxy": "^0.10.1",
+    "express-session": "^1.14.2",
+    "graphql": "^0.9.1",
+    "graphql-server-express": "^0.5.0",
+    "graphql-tools": "^0.10.0",
+    "method-override": "^2.3.6",
+    "ramda": "^0.22.1",
+    "unirest": "^0.5.1",
+    "winston": "^2.3.0"
+  }
+}
